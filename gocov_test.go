@@ -12,9 +12,9 @@ import (
 
 	"os"
 
-	"github.com/heeus/htest/shared"
-	"github.com/heeus/htest/shared/builder"
-	"github.com/heeus/htest/shared/vos"
+	"github.com/heeus/gocov/shared"
+	"github.com/heeus/gocov/shared/builder"
+	"github.com/heeus/gocov/shared/vos"
 )
 
 func TestRun(t *testing.T) {

@@ -3,7 +3,7 @@ package shared
 import (
 	"strings"
 
-	"github.com/heeus/htest/shared/vos"
+	"github.com/heeus/gocov/shared/vos"
 )
 
 // Setup holds globals, environment and command line flags for the courtney

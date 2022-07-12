@@ -10,7 +10,7 @@ import (
 
 	"github.com/dave/astrid"
 	"github.com/dave/brenda"
-	"github.com/heeus/htest/shared"
+	"github.com/heeus/gocov/shared"
 	"github.com/pkg/errors"
 	"golang.org/x/tools/go/packages"
 )

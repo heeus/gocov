@@ -10,9 +10,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/heeus/htest/shared"
-	"github.com/heeus/htest/tester/logger"
-	"github.com/heeus/htest/tester/merge"
+	"github.com/heeus/gocov/shared"
+	"github.com/heeus/gocov/tester/logger"
+	"github.com/heeus/gocov/tester/merge"
 	"github.com/pkg/errors"
 	"golang.org/x/tools/cover"
 )

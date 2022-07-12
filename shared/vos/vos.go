@@ -5,8 +5,8 @@ package vos
 import (
 	"io"
 
-	"github.com/heeus/htest/shared/vos/mock"
-	"github.com/heeus/htest/shared/vos/os"
+	"github.com/heeus/gocov/shared/vos/mock"
+	"github.com/heeus/gocov/shared/vos/os"
 )
 
 // Env provides an interface with methods similar to os.Environ, os.Getenv and

@@ -12,10 +12,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/heeus/htest/shared"
-	"github.com/heeus/htest/shared/builder"
-	"github.com/heeus/htest/shared/vos"
-	"github.com/heeus/htest/tester"
+	"github.com/heeus/gocov/shared"
+	"github.com/heeus/gocov/shared/builder"
+	"github.com/heeus/gocov/shared/vos"
+	"github.com/heeus/gocov/tester"
 	"golang.org/x/tools/cover"
 )
 

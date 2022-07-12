@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/heeus/htest/shared/vos"
+	"github.com/heeus/gocov/shared/vos"
 	"github.com/pkg/errors"
 )
 
