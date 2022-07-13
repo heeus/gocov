@@ -206,7 +206,7 @@ func (t *Tester) processDir(dir string) error {
 		return nil
 	}
 
-	combined, stdout, stderr := logger.Log(
+	combined, _, stderr := logger.Log(
 		t.setup.Verbose,
 		t.setup.Env.Stdout(),
 		t.setup.Env.Stderr(),
@@ -248,7 +248,7 @@ func (t *Tester) processDir(dir string) error {
 	exe := exec.Command("go", args...)
 	exe.Dir = dir
 	exe.Env = t.setup.Env.Environ()
-	exe.Stdout = stdout
+	exe.Stdout = nil
 	exe.Stderr = stderr
 	err = exe.Run()
 	if strings.Contains(combined.String(), "no buildable Go source files in") {
