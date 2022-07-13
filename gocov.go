@@ -114,7 +114,7 @@ func getFuleNameFromFullName(fullfilename string) string {
 	}
 	strs := strings.Split(fullfilename, "/")
 	if len(strs) < 3 {
-		return ""
+		return fullfilename
 	}
 	res := ""
 	for i := 2; i < len(strs); i++ {
