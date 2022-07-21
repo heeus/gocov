@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -15,6 +16,11 @@ import (
 	"github.com/heeus/gocov/shared"
 	"github.com/heeus/gocov/shared/vos"
 	"github.com/heeus/gocov/tester"
+	"golang.org/x/mod/modfile"
+)
+
+const (
+	gomod = "go.mod"
 )
 
 func main() {
@@ -109,22 +115,66 @@ func badStatus(statusline string) bool {
 	return strs[2] == "0"
 }
 func getFuleNameFromFullName(fullfilename string) string {
-	if len(fullfilename) < 5 {
+
+	// Search first go.mod in current and parent folders
+	goModfile, path := findGoMod()
+	fb, err := ioutil.ReadFile(goModfile)
+	if err != nil {
 		return ""
 	}
-	strs := strings.Split(fullfilename, "/")
-	if len(strs) < 3 {
-		return fullfilename
+	f, err := modfile.Parse(goModfile, fb, nil)
+	if err != nil {
+		return ""
 	}
-	res := ""
-	for i := 2; i < len(strs); i++ {
-		if len(res) == 0 {
-			res = strs[i]
-		} else {
-			res = res + "/" + strs[i]
+
+	pos := strings.Index(fullfilename, f.Module.Mod.Path)
+	if pos < 0 {
+		return ""
+	}
+	cutpath := f.Module.Mod.Path + strings.ReplaceAll(path, "\\", "/")
+	return substr(fullfilename, len(cutpath)+1, len(fullfilename))
+}
+
+func findGoMod() (goModPath string, addPath string) {
+	addPath = ""
+	root, _ := os.Getwd()
+	pattern := gomod
+	for {
+		matches, err := filepath.Glob(root + "/" + pattern)
+
+		if err != nil {
+			fmt.Println(err)
 		}
+
+		if len(matches) != 0 {
+			return matches[0], addPath
+		}
+		prevroot := root
+		root = filepath.Dir(root)
+		if prevroot == root {
+			break
+		}
+		if root == "" {
+			break
+		}
+		pos := strings.Index(prevroot, root)
+		addPath = substr(prevroot, len(root)-pos, len(prevroot)-len(root)+1)
 	}
-	return res
+	return "", addPath
+}
+
+func substr(input string, start int, length int) string {
+	asRunes := []rune(input)
+
+	if start >= len(asRunes) {
+		return ""
+	}
+
+	if start+length > len(asRunes) {
+		length = len(asRunes) - start
+	}
+
+	return string(asRunes[start : start+length])
 }
 
 func printTotalCoverage(setup *shared.Setup, out string) {
