@@ -27,9 +27,10 @@ func New(setup *shared.Setup) *Tester {
 
 // Tester runs tests and merges coverage files
 type Tester struct {
-	setup   *shared.Setup
-	cover   string
-	Results []*cover.Profile
+	setup     *shared.Setup
+	cover     string
+	Results   []*cover.Profile
+	ExResults []*cover.Profile
 }
 
 // Load loads pre-prepared coverage files instead of running 'go test'
@@ -64,9 +65,14 @@ func (t *Tester) Test() error {
 	return nil
 }
 
-// Save saves the coverage file
-func (t *Tester) Save() error {
-	if len(t.Results) == 0 {
+func (t *Tester) doSave(covered bool, outf string) error {
+	var rs []*cover.Profile
+	if covered {
+		rs = t.Results
+	} else {
+		rs = t.ExResults
+	}
+	if len(rs) == 0 {
 		fmt.Fprintln(t.setup.Env.Stdout(), "No results")
 		return nil
 	}
@@ -74,7 +80,7 @@ func (t *Tester) Save() error {
 	if err != nil {
 		return errors.Wrap(err, "Error getting working dir")
 	}
-	out := filepath.Join(currentDir, "coverage.out")
+	out := filepath.Join(currentDir, outf)
 	if t.setup.Output != "" {
 		out = t.setup.Output
 	}
@@ -83,8 +89,18 @@ func (t *Tester) Save() error {
 		return errors.Wrapf(err, "Error creating output coverage file %s", out)
 	}
 	defer f.Close()
-	merge.DumpProfiles(t.Results, f)
+	merge.DumpProfiles(rs, f)
 	return nil
+}
+
+// Save saves the coverage file
+func (t *Tester) Save() error {
+	return t.doSave(true, "coverage.out")
+}
+
+// Save saves the coverage file
+func (t *Tester) ExSave() error {
+	return t.doSave(false, "uncoverage.out")
 }
 
 // Enforce returns an error if code is untested if the -e command line option
@@ -140,9 +156,11 @@ func (t *Tester) Enforce() error {
 // ProcessExcludes uses the output from the scanner package and removes blocks
 // from the merged coverage file.
 func (t *Tester) ProcessExcludes(excludes map[string]map[int]bool) error {
+	var exclud []*cover.Profile
 	var processed []*cover.Profile
 
-	for _, p := range t.Results {
+	var p *cover.Profile
+	for _, p = range t.Results {
 
 		// Filenames in t.Results are in go package form. We need to convert to
 		// filepaths before use
@@ -158,6 +176,7 @@ func (t *Tester) ProcessExcludes(excludes map[string]map[int]bool) error {
 			continue
 		}
 		var blocks []cover.ProfileBlock
+		var exblocks []cover.ProfileBlock
 		for _, b := range p.Blocks {
 			excluded := false
 			for line := b.StartLine; line <= b.EndLine; line++ {
@@ -170,7 +189,14 @@ func (t *Tester) ProcessExcludes(excludes map[string]map[int]bool) error {
 				// include blocks that are not excluded
 				// also include any blocks that have coverage
 				blocks = append(blocks, b)
+			} else {
+				exblocks = append(exblocks, b)
 			}
+		}
+		exprofile := &cover.Profile{
+			FileName: p.FileName,
+			Mode:     p.Mode,
+			Blocks:   exblocks,
 		}
 		profile := &cover.Profile{
 			FileName: p.FileName,
@@ -178,8 +204,10 @@ func (t *Tester) ProcessExcludes(excludes map[string]map[int]bool) error {
 			Blocks:   blocks,
 		}
 		processed = append(processed, profile)
+		exclud = append(exclud, exprofile)
 	}
 	t.Results = processed
+	t.ExResults = exclud
 	return nil
 }
 

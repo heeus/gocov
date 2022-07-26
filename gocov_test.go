@@ -47,6 +47,7 @@ func TestRun(t *testing.T) {
 			
 			func TestFoo(t *testing.T) {
 				i := Foo(1)
+				// notest
 				if i != 2 {
 					t.Fail()
 				}

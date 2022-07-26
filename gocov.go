@@ -56,7 +56,9 @@ func main() {
 	}
 
 	out := "coverage.out"
+	exout := "uncoverage.out"
 	printNotCoverLinks(setup, out)
+	printNotCoverLinks(setup, exout)
 	printTotalCoverage(setup, out)
 
 }
@@ -232,9 +234,15 @@ func Run(setup *shared.Setup) error {
 	if err := t.ProcessExcludes(s.Excludes); err != nil {
 		return errors.Wrapf(err, "ProcessExcludes")
 	}
+
 	if err := t.Save(); err != nil {
 		return errors.Wrapf(err, "Save")
 	}
+
+	if err := t.ExSave(); err != nil {
+		return errors.Wrapf(err, "Save")
+	}
+
 	if err := t.Enforce(); err != nil {
 		return errors.Wrapf(err, "Enforce")
 	}
