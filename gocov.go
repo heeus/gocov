@@ -73,8 +73,7 @@ func main() {
 func printNotCoverLinks(setup *shared.Setup, out string, covered bool) {
 	by, err := ioutil.ReadFile(out)
 	if err != nil {
-		fmt.Printf("Error reading coverage output file %s", out)
-		os.Exit(1)
+		return
 	}
 	lines := strings.Split(string(by), "\n")
 	var posfrom string
