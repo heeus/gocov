@@ -66,8 +66,12 @@ gocov .
 
 ### Verbose: -v
 `Verbose output`
-
 All the output from the `go test -v` command is shown.
+
+To see code lines, exculded from coverage analyses: 
+```
+gocov -uncover
+```
 
 # Output
 Gocov will fail if the tests fail. If the tests succeed, it will 
