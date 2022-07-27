@@ -17,6 +17,11 @@ import (
 	"golang.org/x/tools/cover"
 )
 
+const (
+	CoverageFileName   = "coverage.out"
+	UncoverageFileName = "uncoverage.out"
+)
+
 // New creates a new Tester with the provided setup
 func New(setup *shared.Setup) *Tester {
 	t := &Tester{
@@ -95,12 +100,12 @@ func (t *Tester) doSave(covered bool, outf string) error {
 
 // Save saves the coverage file
 func (t *Tester) Save() error {
-	return t.doSave(true, "coverage.out")
+	return t.doSave(true, CoverageFileName)
 }
 
 // Save saves the coverage file
 func (t *Tester) ExSave() error {
-	return t.doSave(false, "uncoverage.out")
+	return t.doSave(false, UncoverageFileName)
 }
 
 // Enforce returns an error if code is untested if the -e command line option

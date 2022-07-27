@@ -30,6 +30,7 @@ func main() {
 	enforceFlag := flag.Bool("e", false, "Enforce 100% code coverage")
 	verboseFlag := flag.Bool("v", false, "Verbose output")
 	shortFlag := flag.Bool("short", false, "Pass the short flag to the go test command")
+	uncoverFlag := flag.Bool("uncover", false, "Shows uncoverage lines in consol")
 	timeoutFlag := flag.String("timeout", "", "Pass the timeout flag to the go test command")
 	outputFlag := flag.String("o", "", "Override coverage file location")
 	argsFlag := new(argsValue)
@@ -46,6 +47,7 @@ func main() {
 		Short:    *shortFlag,
 		Timeout:  *timeoutFlag,
 		Output:   *outputFlag,
+		Uncover:  *uncoverFlag,
 		TestArgs: argsFlag.args,
 		Load:     *loadFlag,
 	}
@@ -55,15 +57,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	out := "coverage.out"
-	exout := "uncoverage.out"
-	printNotCoverLinks(setup, out)
-	printNotCoverLinks(setup, exout)
+	out := tester.CoverageFileName
+	exout := tester.UncoverageFileName
+	if setup.Uncover {
+		printNotCoverLinks(setup, exout, false)
+	} else {
+		printNotCoverLinks(setup, out, true)
+	}
 	printTotalCoverage(setup, out)
 
 }
 
-func printNotCoverLinks(setup *shared.Setup, out string) {
+func printNotCoverLinks(setup *shared.Setup, out string, covered bool) {
 	by, err := ioutil.ReadFile(out)
 	if err != nil {
 		fmt.Printf("Error reading coverage output file %s", out)
@@ -97,8 +102,14 @@ func printNotCoverLinks(setup *shared.Setup, out string) {
 			}
 		}
 	}
+	var s string
+	if covered {
+		s = "The following lines are not tested:"
+	} else {
+		s = "The following lines were excluded from coverage:"
+	}
 	if len(pritnstsr) > 0 {
-		fmt.Println("The following lines are not tested:")
+		fmt.Println(s)
 		for _, str := range pritnstsr {
 			fmt.Println(str)
 		}
@@ -239,8 +250,10 @@ func Run(setup *shared.Setup) error {
 		return errors.Wrapf(err, "Save")
 	}
 
-	if err := t.ExSave(); err != nil {
-		return errors.Wrapf(err, "Save")
+	if setup.Uncover {
+		if err := t.ExSave(); err != nil {
+			return errors.Wrapf(err, "Save")
+		}
 	}
 
 	if err := t.Enforce(); err != nil {
