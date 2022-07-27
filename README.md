@@ -70,7 +70,8 @@ All the output from the `go test -v` command is shown.
 
 To see code lines, exculded from coverage analyses: 
 ```
-gocov -uncover
+gocov -uncover // shows all excluded lines
+gocov -notest  // shows excluded lines, because // notest is manually added
 ```
 
 # Output
