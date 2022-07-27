@@ -6,6 +6,11 @@ import (
 	"github.com/heeus/gocov/shared/vos"
 )
 
+type ExclType struct {
+	Exist  bool
+	Notest bool
+}
+
 // Setup holds globals, environment and command line flags for the courtney
 // command
 type Setup struct {
@@ -15,6 +20,7 @@ type Setup struct {
 	Verbose  bool
 	Short    bool
 	Uncover  bool
+	Notest   bool
 	Timeout  string
 	Load     string
 	Output   string

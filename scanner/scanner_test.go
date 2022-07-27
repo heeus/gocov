@@ -726,8 +726,11 @@ func test(t *testing.T, tests map[string]string) {
 			expected := strings.HasSuffix(line, "// *") ||
 				strings.HasSuffix(line, "//notest") ||
 				strings.HasSuffix(line, "// notest")
-			if result[i+1] != expected {
-				t.Fatalf("Unexpected state in %s, line %d: %s\n", name, i, strconv.Quote(strings.Trim(line, "\t")))
+			realExists := result[i+1]
+			if nil != realExists {
+				if realExists.Exist != expected {
+					t.Fatalf("Unexpected state in %s, line %d: %s\n", name, i, strconv.Quote(strings.Trim(line, "\t")))
+				}
 			}
 		}
 	}

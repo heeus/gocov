@@ -30,7 +30,8 @@ func main() {
 	enforceFlag := flag.Bool("e", false, "Enforce 100% code coverage")
 	verboseFlag := flag.Bool("v", false, "Verbose output")
 	shortFlag := flag.Bool("short", false, "Pass the short flag to the go test command")
-	uncoverFlag := flag.Bool("uncover", false, "Shows uncoverage lines in consol")
+	uncoverFlag := flag.Bool("uncover", false, "Shows uncoverage lines in console")
+	notestFlag := flag.Bool("notest", false, "Shows // notest lines in console")
 	timeoutFlag := flag.String("timeout", "", "Pass the timeout flag to the go test command")
 	outputFlag := flag.String("o", "", "Override coverage file location")
 	argsFlag := new(argsValue)
@@ -48,6 +49,7 @@ func main() {
 		Timeout:  *timeoutFlag,
 		Output:   *outputFlag,
 		Uncover:  *uncoverFlag,
+		Notest:   *notestFlag,
 		TestArgs: argsFlag.args,
 		Load:     *loadFlag,
 	}
@@ -59,7 +61,7 @@ func main() {
 
 	out := tester.CoverageFileName
 	exout := tester.UncoverageFileName
-	if setup.Uncover {
+	if setup.Uncover || setup.Notest {
 		printNotCoverLinks(setup, exout, false)
 	} else {
 		printNotCoverLinks(setup, out, true)
@@ -250,7 +252,7 @@ func Run(setup *shared.Setup) error {
 		return errors.Wrapf(err, "Save")
 	}
 
-	if setup.Uncover {
+	if setup.Uncover || setup.Notest {
 		if err := t.ExSave(); err != nil {
 			return errors.Wrapf(err, "Save")
 		}
