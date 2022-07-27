@@ -160,7 +160,7 @@ func (t *Tester) Enforce() error {
 
 // ProcessExcludes uses the output from the scanner package and removes blocks
 // from the merged coverage file.
-func (t *Tester) ProcessExcludes(excludes map[string]map[int]bool) error {
+func (t *Tester) ProcessExcludes(excludes map[string]map[int]*shared.ExclType) error {
 	var exclud []*cover.Profile
 	var processed []*cover.Profile
 
@@ -185,9 +185,13 @@ func (t *Tester) ProcessExcludes(excludes map[string]map[int]bool) error {
 		for _, b := range p.Blocks {
 			excluded := false
 			for line := b.StartLine; line <= b.EndLine; line++ {
-				if ex, ok := f[line]; ok && ex {
-					excluded = true
-					break
+				if ex, ok := f[line]; ok {
+					if ex.Exist {
+						if (ex.Notest && t.setup.Notest) || !t.setup.Notest {
+							excluded = true
+							break
+						}
+					}
 				}
 			}
 			if !excluded || b.Count > 0 {
