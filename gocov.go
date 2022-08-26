@@ -146,7 +146,7 @@ func getFuleNameFromFullName(fullfilename string) string {
 		return ""
 	}
 	cutpath := f.Module.Mod.Path + strings.ReplaceAll(path, "\\", "/")
-	return substr(fullfilename, len(cutpath)+1, len(fullfilename))
+	return "./" + substr(fullfilename, len(cutpath)+1, len(fullfilename))
 }
 
 func findGoMod() (goModPath string, addPath string) {
