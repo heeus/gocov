@@ -53,7 +53,7 @@ recursively. If no packages are provided, the default is `./...`.
 ```
 go install github.com/heeus/gocov@latest 
 ```
-Run: 
+### Run: 
 
 ```
 gocov
@@ -65,7 +65,7 @@ gocov -notest
 ```
 https://github.com/heeus/gocov/blob/main/README.md
 
-Output: 
+### Output: 
 
 ```
 The following lines are not tested:
