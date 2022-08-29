@@ -43,38 +43,46 @@ has named result parameters, and the last result is an error that has been
 tested non-nil. Be aware that in this scenario no attempt is made to verify 
 that the other result parameters are zero values.  
 
-
-# Install
-```
-go install github.com/heeus/gocov@latest 
-```
-
 # Usage
 Run the gocov command followed by a list of packages. Use `.` for the 
 package in the current directory, and adding `/...` tests all sub-packages 
 recursively. If no packages are provided, the default is `./...`.
 
-To test the current package, and all sub-packages recursively: 
+###Install: 
+
+```
+go install github.com/heeus/gocov@latest 
+```
+Run: 
+
 ```
 gocov
-```
-
-To test just the current package: 
-```
 gocov .
+gocov ./...
+
+gocov -uncover
+gocov -notest
 ```
+https://github.com/heeus/gocov/blob/main/README.md
+
+Output: 
+
+```
+The following lines are not tested:
+core-istructsmem/resources-types.go:77:88
+core-istructsmem/resources-types.go:233:83
+core-istructsmem/viewrecords-dynobuf.go:184:10
+core-istructsmem/viewrecords-dynobuf.go:200:10
+coverage: 99.8% of statements
+```
+Each line like
+
+```common
+core-istructsmem/resources-types.go:77:88
+```
+will be treated by VSCode as a link to source file.
 
 ### Verbose: -v
 `Verbose output`
 All the output from the `go test -v` command is shown.
 
-To see code lines, exculded from coverage analyses: 
-```
-gocov -uncover // shows all excluded lines
-gocov -notest  // shows excluded lines, because // notest is manually added
-```
-
-# Output
-Gocov will fail if the tests fail. If the tests succeed, it will 
-1. Create or overwrite a `coverage.out` file in the current directory.
-2. Print not coverage line addresses. They can are considered as links in VSCode.
