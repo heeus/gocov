@@ -63,7 +63,6 @@ gocov ./...
 gocov -uncover
 gocov -notest
 ```
-https://github.com/heeus/gocov/blob/main/README.md
 
 ### Output: 
 
