@@ -48,7 +48,7 @@ Run the gocov command followed by a list of packages. Use `.` for the
 package in the current directory, and adding `/...` tests all sub-packages 
 recursively. If no packages are provided, the default is `./...`.
 
-###Install: 
+### Install: 
 
 ```
 go install github.com/heeus/gocov@latest 
