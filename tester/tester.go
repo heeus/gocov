@@ -32,10 +32,12 @@ func New(setup *shared.Setup) *Tester {
 
 // Tester runs tests and merges coverage files
 type Tester struct {
-	setup     *shared.Setup
-	cover     string
-	Results   []*cover.Profile
-	ExResults []*cover.Profile
+	setup              *shared.Setup
+	cover              string
+	Results            []*cover.Profile
+	NocoverResults     []*cover.Profile
+	NocoverdeptResults []*cover.Profile
+	NocoverautoResults []*cover.Profile
 }
 
 // Load loads pre-prepared coverage files instead of running 'go test'
@@ -70,13 +72,20 @@ func (t *Tester) Test() error {
 	return nil
 }
 
-func (t *Tester) doSave(covered bool, outf string) error {
+func (t *Tester) doSave(extype shared.ExcludeType, outf string) error {
 	var rs []*cover.Profile
-	if covered {
+
+	switch {
+	case extype == shared.Nocover:
+		rs = t.NocoverResults
+	case extype == shared.Nocoverdept:
+		rs = t.NocoverdeptResults
+	case extype == shared.Nocoverauto:
+		rs = t.NocoverautoResults
+	default:
 		rs = t.Results
-	} else {
-		rs = t.ExResults
 	}
+
 	if len(rs) == 0 {
 		fmt.Fprintln(t.setup.Env.Stdout(), "No results")
 		return nil
@@ -94,18 +103,31 @@ func (t *Tester) doSave(covered bool, outf string) error {
 		return errors.Wrapf(err, "Error creating output coverage file %s", out)
 	}
 	defer f.Close()
+
+	if extype == shared.Nocoverauto {
+		fmt.Println("Auto excluded blocks")
+		fmt.Println("______________________")
+	}
+	if extype == shared.Nocoverdept {
+		fmt.Println("//nocoverdept excluded blocks")
+		fmt.Println("______________________")
+	}
+	if extype == shared.Nocover {
+		fmt.Println("//nocover excluded blocks")
+		fmt.Println("______________________")
+	}
 	merge.DumpProfiles(rs, f)
 	return nil
 }
 
 // Save saves the coverage file
 func (t *Tester) Save() error {
-	return t.doSave(true, CoverageFileName)
+	return t.doSave(shared.Nocoverall, CoverageFileName)
 }
 
-// Save saves the coverage file
-func (t *Tester) ExSave() error {
-	return t.doSave(false, UncoverageFileName)
+// SaveUn saves the uncoverage file
+func (t *Tester) SaveUn(extype shared.ExcludeType) error {
+	return t.doSave(extype, UncoverageFileName)
 }
 
 // Enforce returns an error if code is untested if the -e command line option
@@ -160,8 +182,10 @@ func (t *Tester) Enforce() error {
 
 // ProcessExcludes uses the output from the scanner package and removes blocks
 // from the merged coverage file.
-func (t *Tester) ProcessExcludes(excludes map[string]map[int]*shared.ExclType) error {
-	var exclud []*cover.Profile
+func (t *Tester) ProcessExcludes(excludes map[string]map[int]shared.ExcludeType) error {
+	var nocoverexclud []*cover.Profile
+	var nocoverdeptexclud []*cover.Profile
+	var nocoverautoexclud []*cover.Profile
 	var processed []*cover.Profile
 
 	var p *cover.Profile
@@ -181,42 +205,69 @@ func (t *Tester) ProcessExcludes(excludes map[string]map[int]*shared.ExclType) e
 			continue
 		}
 		var blocks []cover.ProfileBlock
-		var exblocks []cover.ProfileBlock
+		var nocoverblocks []cover.ProfileBlock
+		var nocoverdeptblocks []cover.ProfileBlock
+		var nocoverautoblocks []cover.ProfileBlock
 		for _, b := range p.Blocks {
-			excluded := false
+			excluded := shared.Nocoverall
 			for line := b.StartLine; line <= b.EndLine; line++ {
 				if ex, ok := f[line]; ok {
-					if ex.Exist {
-						if (ex.Notest && t.setup.Notest) || !t.setup.Notest {
-							excluded = true
-							break
-						}
+					if ex == shared.Nocover {
+						excluded = shared.Nocover
+						break
+					} else if ex == shared.Nocoverdept {
+						excluded = shared.Nocoverdept
+						break
+					} else if ex == shared.Nocoverauto {
+						excluded = shared.Nocoverauto
+						break
 					}
 				}
 			}
-			if !excluded || b.Count > 0 {
+			if excluded == shared.Nocoverall || b.Count > 0 {
 				// include blocks that are not excluded
 				// also include any blocks that have coverage
 				blocks = append(blocks, b)
 			} else {
-				exblocks = append(exblocks, b)
+				switch {
+				case excluded == shared.Nocover:
+					nocoverblocks = append(nocoverblocks, b)
+				case excluded == shared.Nocoverdept:
+					nocoverdeptblocks = append(nocoverdeptblocks, b)
+				case excluded == shared.Nocoverauto:
+					nocoverautoblocks = append(nocoverautoblocks, b)
+				}
 			}
-		}
-		exprofile := &cover.Profile{
-			FileName: p.FileName,
-			Mode:     p.Mode,
-			Blocks:   exblocks,
 		}
 		profile := &cover.Profile{
 			FileName: p.FileName,
 			Mode:     p.Mode,
 			Blocks:   blocks,
 		}
+		nocoverprofile := &cover.Profile{
+			FileName: p.FileName,
+			Mode:     p.Mode,
+			Blocks:   nocoverblocks,
+		}
+		nocoverdeptprofile := &cover.Profile{
+			FileName: p.FileName,
+			Mode:     p.Mode,
+			Blocks:   nocoverdeptblocks,
+		}
+		nocoverautoprofile := &cover.Profile{
+			FileName: p.FileName,
+			Mode:     p.Mode,
+			Blocks:   nocoverautoblocks,
+		}
 		processed = append(processed, profile)
-		exclud = append(exclud, exprofile)
+		nocoverexclud = append(nocoverexclud, nocoverprofile)
+		nocoverdeptexclud = append(nocoverdeptexclud, nocoverdeptprofile)
+		nocoverautoexclud = append(nocoverautoexclud, nocoverautoprofile)
 	}
 	t.Results = processed
-	t.ExResults = exclud
+	t.NocoverResults = nocoverexclud
+	t.NocoverdeptResults = nocoverdeptexclud
+	t.NocoverautoResults = nocoverautoexclud
 	return nil
 }
 
@@ -239,7 +290,7 @@ func (t *Tester) processDir(dir string) error {
 		}
 	}
 	if !foundTest {
-		// notest
+		// nocover
 		return nil
 	}
 
@@ -256,12 +307,12 @@ func (t *Tester) processDir(dir string) error {
 	}
 	args = append(args, "test")
 	if t.setup.Short {
-		// notest
+		// nocover
 		// TODO: add test
 		args = append(args, "-short")
 	}
 	if t.setup.Timeout != "" {
-		// notest
+		// nocover
 		// TODO: add test
 		args = append(args, "-timeout", t.setup.Timeout)
 	}
@@ -271,7 +322,7 @@ func (t *Tester) processDir(dir string) error {
 		args = append(args, "-v")
 	}
 	if len(t.setup.TestArgs) > 0 {
-		// notest
+		// nocover
 		args = append(args, t.setup.TestArgs...)
 	}
 	if t.setup.Verbose {
@@ -289,12 +340,12 @@ func (t *Tester) processDir(dir string) error {
 	exe.Stderr = stderr
 	err = exe.Run()
 	if strings.Contains(combined.String(), "no buildable Go source files in") {
-		// notest
+		// nocover
 		return nil
 	}
 	if err != nil {
 		// TODO: Remove when https://github.com/dave/courtney/issues/4 is fixed
-		// notest
+		// nocover
 		if t.setup.Verbose {
 			// They will already have seen the output
 			return errors.Wrap(err, "Error executing test")
@@ -325,7 +376,7 @@ func undent(lines []string) []string {
 	for _, line := range lines {
 		loc := indentRegex.FindStringIndex(line)
 		if len(loc) == 0 {
-			// notest
+			// nocover
 			// string is empty?
 			continue
 		}
@@ -337,7 +388,7 @@ func undent(lines []string) []string {
 	var out []string
 	for _, line := range lines {
 		if line == "" {
-			// notest
+			// nocover
 			out = append(out, "")
 		} else {
 			out = append(out, "\t"+line[mindent:])

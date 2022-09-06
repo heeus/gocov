@@ -9,7 +9,7 @@ import (
 	"golang.org/x/tools/cover"
 )
 
-// notest
+// nocover
 
 // AddProfile adds and merges a profile to a slice of profiles
 func AddProfile(profiles []*cover.Profile, p *cover.Profile) ([]*cover.Profile, error) {

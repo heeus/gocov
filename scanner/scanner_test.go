@@ -1,6 +1,7 @@
 package scanner_test
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -616,7 +617,7 @@ func TestComments(t *testing.T) {
 					return i 
 				}            
 				             
-				//notest
+				//nocover
 				             // *
 				if i > 2 {   // *
 					return i // *
@@ -628,7 +629,7 @@ func TestComments(t *testing.T) {
 			
 			func Baz(i int) int { 
 				if i > 2 {
-					//notest
+					//nocover
 					return i // *
 				}
 				return 0
@@ -636,7 +637,7 @@ func TestComments(t *testing.T) {
 			`,
 		"scope file": `package foo
 			
-			//notest
+			//nocover
 			                      // *
 			func Baz(i int) int { // *
 				if i > 2 {        // *
@@ -660,7 +661,7 @@ func TestComments(t *testing.T) {
 				var logger Logger
 				var tokens []interface{}
 				if logger.Enabled {
-					// notest
+					// nocover
 					for i, token := range tokens {        // *
 						logger.Print("[", i, "] ", token) // *
 					}                                     // *
@@ -672,7 +673,7 @@ func TestComments(t *testing.T) {
 			func Foo() bool {
 				switch {
 				case true:
-					// notest
+					// nocover
 					if true {       // *
 						return true // *
 					}               // *
@@ -722,16 +723,26 @@ func test(t *testing.T, tests map[string]string) {
 
 		result := cm.Excludes[filepath.Join(pdir, "a.go")]
 
+		// matches strings like:
+		//   - //notest$
+		//   - // notest$
+		//   - //notest // because this is glue code$
+		//   - // notest // because this is glue code$
+		nocover := regexp.MustCompile("//\\s?nocover(\\s//\\s?.*)?$")
+		nocoverdept := regexp.MustCompile("//\\s?nocoverdept(\\s//\\s?.*)?$")
+
 		for i, line := range strings.Split(source, "\n") {
-			expected := strings.HasSuffix(line, "// *") ||
-				strings.HasSuffix(line, "//notest") ||
-				strings.HasSuffix(line, "// notest")
-			realExists := result[i+1]
-			if nil != realExists {
-				if realExists.Exist != expected {
-					t.Fatalf("Unexpected state in %s, line %d: %s\n", name, i, strconv.Quote(strings.Trim(line, "\t")))
-				}
+			var expected shared.ExcludeType
+			if strings.HasSuffix(line, "// *") || nocover.MatchString(line) {
+				expected = shared.Nocover
+			}
+			if nocoverdept.MatchString(line) {
+				expected = shared.Nocoverdept
+			}
+			if result[i+1] != expected && result[i+1] != shared.Nocoverauto {
+				t.Fatalf("Unexpected state in %s, line %d: %s\n", name, i, strconv.Quote(strings.Trim(line, "\t")))
 			}
 		}
+
 	}
 }

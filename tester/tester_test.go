@@ -52,10 +52,10 @@ func TestTester_ProcessExcludes(t *testing.T) {
 					},
 				},
 			}
-			excludes := map[string]map[int]*shared.ExclType{
+			excludes := map[string]map[int]shared.ExcludeType{
 				filepath.Join(pdir, "a.go"): {
-					25: &shared.ExclType{true, true},
-					35: &shared.ExclType{true, true},
+					25: shared.Nocover,
+					35: shared.Nocover,
 				},
 			}
 			expected := []cover.ProfileBlock{

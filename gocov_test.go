@@ -47,7 +47,7 @@ func TestRun(t *testing.T) {
 			
 			func TestFoo(t *testing.T) {
 				i := Foo(1)
-				// notest
+				// nocover
 				if i != 2 {
 					t.Fail()
 				}

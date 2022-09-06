@@ -24,14 +24,15 @@ const (
 )
 
 func main() {
-	// notest
+	// nocover
 	env := vos.Os()
 
 	enforceFlag := flag.Bool("e", false, "Enforce 100% code coverage")
 	verboseFlag := flag.Bool("v", false, "Verbose output")
 	shortFlag := flag.Bool("short", false, "Pass the short flag to the go test command")
-	uncoverFlag := flag.Bool("uncover", false, "Shows uncoverage lines in console")
-	notestFlag := flag.Bool("notest", false, "Shows // notest lines in console")
+	nocoverautoFlag := flag.Bool("nocoverauto", false, "Shows auto uncovered lines in console")
+	nocoverFlag := flag.Bool("nocover", false, "Shows //nocover lines in console")
+	nocoverdeptFlag := flag.Bool("nocoverdept", false, "Shows //nocoverdept lines in console")
 	timeoutFlag := flag.String("timeout", "", "Pass the timeout flag to the go test command")
 	outputFlag := flag.String("o", "", "Override coverage file location")
 	argsFlag := new(argsValue)
@@ -41,17 +42,18 @@ func main() {
 	flag.Parse()
 
 	setup := &shared.Setup{
-		Env:      env,
-		Paths:    shared.NewCache(env),
-		Enforce:  *enforceFlag,
-		Verbose:  *verboseFlag,
-		Short:    *shortFlag,
-		Timeout:  *timeoutFlag,
-		Output:   *outputFlag,
-		Uncover:  *uncoverFlag,
-		Notest:   *notestFlag,
-		TestArgs: argsFlag.args,
-		Load:     *loadFlag,
+		Env:         env,
+		Paths:       shared.NewCache(env),
+		Enforce:     *enforceFlag,
+		Verbose:     *verboseFlag,
+		Short:       *shortFlag,
+		Timeout:     *timeoutFlag,
+		Output:      *outputFlag,
+		Nocoverauto: *nocoverautoFlag,
+		Nocover:     *nocoverFlag,
+		Nocoverdept: *nocoverdeptFlag,
+		TestArgs:    argsFlag.args,
+		Load:        *loadFlag,
 	}
 
 	if err := Run(setup); err != nil {
@@ -61,17 +63,17 @@ func main() {
 
 	out := tester.CoverageFileName
 	exout := tester.UncoverageFileName
-	if setup.Uncover || setup.Notest {
-		printNotCoverLinks(setup, exout, false)
+	if setup.Nocoverauto || setup.Nocover {
+		printNotCoverLinks(exout, false)
 	} else {
-		printNotCoverLinks(setup, out, true)
+		printNotCoverLinks(out, true)
 	}
 	printTotalCoverage(setup, out)
 
 }
 
-func printNotCoverLinks(setup *shared.Setup, out string, covered bool) {
-	by, err := ioutil.ReadFile(out)
+func printNotCoverLinks(fn string, covered bool) {
+	by, err := ioutil.ReadFile(fn)
 	if err != nil {
 		return
 	}
@@ -191,19 +193,19 @@ func substr(input string, start int, length int) string {
 	return string(asRunes[start : start+length])
 }
 
-func printTotalCoverage(setup *shared.Setup, out string) {
+func printTotalCoverage(setup *shared.Setup, fn string) {
 	currentDir, _ := setup.Env.Getwd()
 
 	stdout := bytes.NewBufferString("")
 	stderr := bytes.NewBufferString("")
-	exe := exec.Command("go", "tool", "cover", "-func", out)
+	exe := exec.Command("go", "tool", "cover", "-func", fn)
 	exe.Dir = currentDir
 	exe.Env = setup.Env.Environ()
 	exe.Stdout = stdout
 	exe.Stderr = stderr
 	err := exe.Run()
 	if err != nil {
-		fmt.Printf("%v not found.", out)
+		fmt.Printf("%v not found.", fn)
 		os.Exit(1)
 	}
 
@@ -251,9 +253,19 @@ func Run(setup *shared.Setup) error {
 		return errors.Wrapf(err, "Save")
 	}
 
-	if setup.Uncover || setup.Notest {
-		if err := t.ExSave(); err != nil {
-			return errors.Wrapf(err, "Save")
+	if setup.Nocover {
+		if err := t.SaveUn(shared.Nocover); err != nil {
+			return errors.Wrapf(err, "SaveUn")
+		}
+	}
+	if setup.Nocoverdept {
+		if err := t.SaveUn(shared.Nocoverdept); err != nil {
+			return errors.Wrapf(err, "SaveUn")
+		}
+	}
+	if setup.Nocoverauto {
+		if err := t.SaveUn(shared.Nocoverauto); err != nil {
+			return errors.Wrapf(err, "SaveUn")
 		}
 	}
 
@@ -271,14 +283,14 @@ type argsValue struct {
 var _ flag.Value = (*argsValue)(nil)
 
 func (v *argsValue) String() string {
-	// notest
+	// nocover
 	if v == nil {
 		return ""
 	}
 	return strings.Join(v.args, " ")
 }
 func (v *argsValue) Set(s string) error {
-	// notest
+	// nocover
 	v.args = append(v.args, s)
 	return nil
 }

@@ -19,7 +19,7 @@ import (
 type CodeMap struct {
 	setup    *shared.Setup
 	pkgs     []*packages.Package
-	Excludes map[string]map[int]*shared.ExclType
+	Excludes map[string]map[int]shared.ExcludeType
 }
 
 // PackageMap scans a single package for code to exclude
@@ -45,17 +45,15 @@ type packageId struct {
 func New(setup *shared.Setup) *CodeMap {
 	return &CodeMap{
 		setup:    setup,
-		Excludes: make(map[string]map[int]*shared.ExclType),
+		Excludes: make(map[string]map[int]shared.ExcludeType),
 	}
 }
 
-func (c *CodeMap) addExclude(fpath string, line int, bNoTest bool) {
+func (c *CodeMap) addExclude(fpath string, line int, exclType shared.ExcludeType) {
 	if c.Excludes[fpath] == nil {
-		c.Excludes[fpath] = make(map[int]*shared.ExclType)
+		c.Excludes[fpath] = make(map[int]shared.ExcludeType)
 	}
-	extype := shared.ExclType{true, bNoTest}
-	c.Excludes[fpath][line] = &extype
-
+	c.Excludes[fpath][line] = exclType
 }
 
 // LoadProgram uses the loader package to load and process the source for a
@@ -86,17 +84,6 @@ func (c *CodeMap) LoadProgram() error {
 	}()
 
 	pkgs, err := packages.Load(cfg, patterns...)
-	/*
-		ctxt := build.Default
-		ctxt.GOPATH = c.setup.Env.Getenv("GOPATH")
-
-		conf := loader.Config{Build: &ctxt, Cwd: wd, ParserMode: parser.ParseComments}
-
-		for _, p := range c.setup.Packages {
-			conf.Import(p.Path)
-		}
-		prog, err := conf.Load()
-	*/
 	if err != nil {
 		return errors.Wrap(err, "Error loading config")
 	}
@@ -141,12 +128,12 @@ func (f *FileMap) FindExcludes() error {
 
 	ast.Inspect(f.file, func(node ast.Node) bool {
 		if err != nil {
-			// notest
+			// nocover
 			return false
 		}
 		b, inner := f.inspectNode(node)
 		if inner != nil {
-			// notest
+			// nocover
 			err = inner
 			return false
 		}
@@ -179,32 +166,45 @@ func (f *FileMap) findScope(node ast.Node, filter func(ast.Node) bool) ast.Node 
 			return scopes[i]
 		}
 	}
-	// notest
+	// nocover
 	return nil
 }
 
 func (f *FileMap) inspectComment(cg *ast.CommentGroup) {
-	for _, cm := range cg.List {
-		if !strings.HasPrefix(cm.Text, "//notest") && !strings.HasPrefix(cm.Text, "// notest") {
-			continue
+	var ncstr []string
+	for i := 0; i < 2; i++ {
+		if i == 0 {
+			ncstr = []string{"//", "nocover"}
+		} else {
+			ncstr = []string{"//", "nocoverdept"}
 		}
-
-		// get the parent scope
-		scope := f.findScope(cm, nil)
-
-		// scope can be nil if the comment is in an empty file... in that
-		// case we don't need any excludes.
-		if scope != nil {
-			comment := f.fset.Position(cm.Pos())
-			start := f.fset.Position(scope.Pos())
-			end := f.fset.Position(scope.End())
-			endLine := end.Line
-			if _, ok := scope.(*ast.CaseClause); ok {
-				// case block needs an extra line...
-				endLine++
+		for _, cm := range cg.List {
+			if !strings.HasPrefix(cm.Text, strings.Join(ncstr, "")) &&
+				!strings.HasPrefix(cm.Text, strings.Join(ncstr, " ")) {
+				continue
 			}
-			for line := comment.Line; line < endLine; line++ {
-				f.addExclude(start.Filename, line, true)
+
+			// get the parent scope
+			scope := f.findScope(cm, nil)
+
+			// scope can be nil if the comment is in an empty file... in that
+			// case we don't need any excludes.
+			if scope != nil {
+				comment := f.fset.Position(cm.Pos())
+				start := f.fset.Position(scope.Pos())
+				end := f.fset.Position(scope.End())
+				endLine := end.Line
+				if _, ok := scope.(*ast.CaseClause); ok {
+					// case block needs an extra line...
+					endLine++
+				}
+				for line := comment.Line; line < endLine; line++ {
+					if i == 0 {
+						f.addExclude(start.Filename, line, shared.Nocover)
+					} else {
+						f.addExclude(start.Filename, line, shared.Nocoverdept)
+					}
+				}
 			}
 		}
 	}
@@ -218,7 +218,7 @@ func (f *FileMap) inspectNode(node ast.Node) (bool, error) {
 	case *ast.CallExpr:
 		if id, ok := n.Fun.(*ast.Ident); ok && id.Name == "panic" {
 			pos := f.fset.Position(n.Pos())
-			f.addExclude(pos.Filename, pos.Line, false)
+			f.addExclude(pos.Filename, pos.Line, shared.Nocoverauto)
 		}
 	case *ast.IfStmt:
 		if err := f.inspectIf(n); err != nil {
@@ -352,7 +352,7 @@ func (f *FileMap) inspectNodeForReturn(search ast.Expr) func(node ast.Node) bool
 		case *ast.ReturnStmt:
 			if f.isErrorReturn(n, search) {
 				pos := f.fset.Position(n.Pos())
-				f.addExclude(pos.Filename, pos.Line, false)
+				f.addExclude(pos.Filename, pos.Line, shared.Nocoverauto)
 			}
 		}
 		return true
@@ -372,24 +372,24 @@ func (f *FileMap) inspectNodeForWrap(block *ast.BlockStmt, search ast.Expr) func
 			// var e error = foo()
 			gd, ok := n.Decl.(*ast.GenDecl)
 			if !ok {
-				// notest
+				// nocover
 				return true
 			}
 			if gd.Tok != token.VAR {
-				// notest
+				// nocover
 				return true
 			}
 			if len(gd.Specs) != 1 {
-				// notest
+				// nocover
 				return true
 			}
 			spec, ok := gd.Specs[0].(*ast.ValueSpec)
 			if !ok {
-				// notest
+				// nocover
 				return true
 			}
 			if len(spec.Names) != 1 || len(spec.Values) != 1 {
-				// notest
+				// nocover
 				return true
 			}
 			newSearch := spec.Names[0]
@@ -400,7 +400,7 @@ func (f *FileMap) inspectNodeForWrap(block *ast.BlockStmt, search ast.Expr) func
 
 		case *ast.AssignStmt:
 			if len(n.Lhs) != 1 || len(n.Rhs) != 1 {
-				// notest
+				// nocover
 				return true
 			}
 			newSearch := n.Lhs[0]
@@ -420,7 +420,7 @@ func (f *FileMap) isErrorCall(expr, search ast.Expr) bool {
 	}
 	if !f.isError(n) {
 		// never gets here, but leave it in for completeness
-		// notest
+		// nocover
 		return false
 	}
 	for _, arg := range n.Args {
@@ -459,7 +459,7 @@ func (f *FileMap) isErrorReturnNamedResultParameters(r *ast.ReturnStmt, search a
 	if last.Names == nil {
 		// anonymous returns - shouldn't be able to get here because a bare
 		// return statement with either have zero results or named results.
-		// notest
+		// nocover
 		return false
 	}
 	id := last.Names[len(last.Names)-1]
@@ -520,7 +520,7 @@ func (f *FileMap) isZero(v ast.Expr) bool {
 		case constant.Int, constant.Float, constant.Complex:
 			return constant.Sign(t.Value) == 0
 		default:
-			// notest
+			// nocover
 			return false
 		}
 	}
