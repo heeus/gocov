@@ -128,12 +128,12 @@ func (f *FileMap) FindExcludes() error {
 
 	ast.Inspect(f.file, func(node ast.Node) bool {
 		if err != nil {
-			// nocover
+			// notest
 			return false
 		}
 		b, inner := f.inspectNode(node)
 		if inner != nil {
-			// nocover
+			// notest
 			err = inner
 			return false
 		}
@@ -166,7 +166,7 @@ func (f *FileMap) findScope(node ast.Node, filter func(ast.Node) bool) ast.Node 
 			return scopes[i]
 		}
 	}
-	// nocover
+	// notest
 	return nil
 }
 
@@ -174,9 +174,9 @@ func (f *FileMap) inspectComment(cg *ast.CommentGroup) {
 	var ncstr []string
 	for i := 0; i < 2; i++ {
 		if i == 0 {
-			ncstr = []string{"//", "nocover"}
+			ncstr = []string{"//", "notest"}
 		} else {
-			ncstr = []string{"//", "nocoverdept"}
+			ncstr = []string{"//", "notestdept"}
 		}
 		for _, cm := range cg.List {
 			if !strings.HasPrefix(cm.Text, strings.Join(ncstr, "")) &&
@@ -200,9 +200,9 @@ func (f *FileMap) inspectComment(cg *ast.CommentGroup) {
 				}
 				for line := comment.Line; line < endLine; line++ {
 					if i == 0 {
-						f.addExclude(start.Filename, line, shared.Nocover)
+						f.addExclude(start.Filename, line, shared.Notest)
 					} else {
-						f.addExclude(start.Filename, line, shared.Nocoverdept)
+						f.addExclude(start.Filename, line, shared.Notestdept)
 					}
 				}
 			}
@@ -215,11 +215,6 @@ func (f *FileMap) inspectNode(node ast.Node) (bool, error) {
 		return true, nil
 	}
 	switch n := node.(type) {
-	case *ast.CallExpr:
-		if id, ok := n.Fun.(*ast.Ident); ok && id.Name == "panic" {
-			pos := f.fset.Position(n.Pos())
-			f.addExclude(pos.Filename, pos.Line, shared.Nocoverauto)
-		}
 	case *ast.IfStmt:
 		if err := f.inspectIf(n); err != nil {
 			return false, err
@@ -323,26 +318,6 @@ func (f *FileMap) processResults(s *brenda.Solver, block *ast.BlockStmt) {
 	}
 }
 
-func (f *FileMap) isErrorComparison(e ast.Expr) (found bool, sign token.Token, expr ast.Expr) {
-	if b, ok := e.(*ast.BinaryExpr); ok {
-		if b.Op != token.NEQ && b.Op != token.EQL {
-			return
-		}
-		xErr := f.isError(b.X)
-		yNil := f.isNil(b.Y)
-
-		if xErr && yNil {
-			return true, b.Op, b.X
-		}
-		yErr := f.isError(b.Y)
-		xNil := f.isNil(b.X)
-		if yErr && xNil {
-			return true, b.Op, b.Y
-		}
-	}
-	return
-}
-
 func (f *FileMap) inspectNodeForReturn(search ast.Expr) func(node ast.Node) bool {
 	return func(node ast.Node) bool {
 		if node == nil {
@@ -351,8 +326,7 @@ func (f *FileMap) inspectNodeForReturn(search ast.Expr) func(node ast.Node) bool
 		switch n := node.(type) {
 		case *ast.ReturnStmt:
 			if f.isErrorReturn(n, search) {
-				pos := f.fset.Position(n.Pos())
-				f.addExclude(pos.Filename, pos.Line, shared.Nocoverauto)
+				return true
 			}
 		}
 		return true
@@ -413,6 +387,26 @@ func (f *FileMap) inspectNodeForWrap(block *ast.BlockStmt, search ast.Expr) func
 	}
 }
 
+func (f *FileMap) isErrorComparison(e ast.Expr) (found bool, sign token.Token, expr ast.Expr) {
+	if b, ok := e.(*ast.BinaryExpr); ok {
+		if b.Op != token.NEQ && b.Op != token.EQL {
+			return
+		}
+		xErr := f.isError(b.X)
+		yNil := f.isNil(b.Y)
+
+		if xErr && yNil {
+			return true, b.Op, b.X
+		}
+		yErr := f.isError(b.Y)
+		xNil := f.isNil(b.X)
+		if yErr && xNil {
+			return true, b.Op, b.Y
+		}
+	}
+	return
+}
+
 func (f *FileMap) isErrorCall(expr, search ast.Expr) bool {
 	n, ok := expr.(*ast.CallExpr)
 	if !ok {
@@ -420,7 +414,7 @@ func (f *FileMap) isErrorCall(expr, search ast.Expr) bool {
 	}
 	if !f.isError(n) {
 		// never gets here, but leave it in for completeness
-		// nocover
+		// notest
 		return false
 	}
 	for _, arg := range n.Args {
@@ -459,7 +453,7 @@ func (f *FileMap) isErrorReturnNamedResultParameters(r *ast.ReturnStmt, search a
 	if last.Names == nil {
 		// anonymous returns - shouldn't be able to get here because a bare
 		// return statement with either have zero results or named results.
-		// nocover
+		// notest
 		return false
 	}
 	id := last.Names[len(last.Names)-1]
@@ -520,7 +514,7 @@ func (f *FileMap) isZero(v ast.Expr) bool {
 		case constant.Int, constant.Float, constant.Complex:
 			return constant.Sign(t.Value) == 0
 		default:
-			// nocover
+			// notest
 			return false
 		}
 	}

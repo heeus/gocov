@@ -11,8 +11,8 @@ What do we exclude from the coverage report?
 If you need to test that your code panics correctly, it should probably be an 
 error rather than a panic. 
 
-### Nocover comments
-Blocks or files with a `// nocover` comment are excluded.
+### notest comments
+Blocks or files with a `// notest` comment are excluded.
 
 ### Blocks returning a error tested to be non-nil
 We only exclude blocks where the error being returned has been tested to be 
@@ -62,7 +62,7 @@ gocov .
 gocov ./...
 
 gocov -uncover
-gocov -nocover
+gocov -notest
 ```
 
 ### Output: 

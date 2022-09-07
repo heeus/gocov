@@ -24,36 +24,50 @@ const (
 )
 
 func main() {
-	// nocover
+	// notest
 	env := vos.Os()
 
-	enforceFlag := flag.Bool("e", false, "Enforce 100% code coverage")
-	verboseFlag := flag.Bool("v", false, "Verbose output")
-	shortFlag := flag.Bool("short", false, "Pass the short flag to the go test command")
-	nocoverautoFlag := flag.Bool("nocoverauto", false, "Shows auto uncovered lines in console")
-	nocoverFlag := flag.Bool("nocover", false, "Shows //nocover lines in console")
-	nocoverdeptFlag := flag.Bool("nocoverdept", false, "Shows //nocoverdept lines in console")
-	timeoutFlag := flag.String("timeout", "", "Pass the timeout flag to the go test command")
-	outputFlag := flag.String("o", "", "Override coverage file location")
+	var enforceFlag bool
+	var verboseFlag bool
+	var shortFlag bool
+	var notestdeptFlag bool
+	var timeoutFlag string
+	var outputFlag string
+	var loadFlag string
+
 	argsFlag := new(argsValue)
 	flag.Var(argsFlag, "t", "Argument to pass to the 'go test' command. Can be used more than once.")
-	loadFlag := flag.String("l", "", "Load coverage file(s) instead of running 'go test'")
 
-	flag.Parse()
+	fs := flag.NewFlagSet("gocov", flag.ContinueOnError)
+	fs.BoolVar(&enforceFlag, "e", false, "Enforce 100% code coverage")
+	fs.BoolVar(&verboseFlag, "v", false, "Verbose output")
+	fs.BoolVar(&shortFlag, "short", false, "Pass the short flag to the go test command")
+	fs.BoolVar(&notestdeptFlag, "notestdept", false, "Shows //notestdept lines in console")
+	fs.StringVar(&timeoutFlag, "timeout", "", "Pass the timeout flag to the go test command")
+	fs.StringVar(&outputFlag, "o", "", "Override coverage file location")
+	fs.StringVar(&loadFlag, "l", "", "Load coverage file(s) instead of running 'go test'")
+	start := 1
+	notestParam := false
+	notestdeptParam := false
+	if len(os.Args) > 1 {
+		notestParam = os.Args[1] == "notest"
+		notestdeptParam = os.Args[1] == "notestdept"
+		start = 2
+	}
+	fs.Parse(os.Args[start:])
 
 	setup := &shared.Setup{
-		Env:         env,
-		Paths:       shared.NewCache(env),
-		Enforce:     *enforceFlag,
-		Verbose:     *verboseFlag,
-		Short:       *shortFlag,
-		Timeout:     *timeoutFlag,
-		Output:      *outputFlag,
-		Nocoverauto: *nocoverautoFlag,
-		Nocover:     *nocoverFlag,
-		Nocoverdept: *nocoverdeptFlag,
-		TestArgs:    argsFlag.args,
-		Load:        *loadFlag,
+		Env:        env,
+		Paths:      shared.NewCache(env),
+		Enforce:    enforceFlag,
+		Verbose:    verboseFlag,
+		Short:      shortFlag,
+		Timeout:    timeoutFlag,
+		Output:     outputFlag,
+		Notest:     notestParam,
+		Notestdept: notestdeptParam,
+		TestArgs:   argsFlag.args,
+		Load:       loadFlag,
 	}
 
 	if err := Run(setup); err != nil {
@@ -62,9 +76,9 @@ func main() {
 	}
 
 	out := tester.CoverageFileName
-	exout := tester.UncoverageFileName
-	if setup.Nocoverauto || setup.Nocover {
-		printNotCoverLinks(exout, false)
+	outun := tester.UncoverageFileName
+	if setup.Notest || setup.Notestdept {
+		printNotCoverLinks(outun, false)
 	} else {
 		printNotCoverLinks(out, true)
 	}
@@ -107,16 +121,17 @@ func printNotCoverLinks(fn string, covered bool) {
 	}
 	var s string
 	if covered {
-		s = "The following lines are not tested:"
+		s = "The following lines are not tested:" +
+			"___________________________________"
 	} else {
-		s = "The following lines were excluded from coverage:"
+		s = "The following lines were excluded from coverage:" +
+			"____________________________________________________"
 	}
 	if len(pritnstsr) > 0 {
 		fmt.Println(s)
 		for _, str := range pritnstsr {
 			fmt.Println(str)
 		}
-
 	}
 }
 
@@ -253,18 +268,13 @@ func Run(setup *shared.Setup) error {
 		return errors.Wrapf(err, "Save")
 	}
 
-	if setup.Nocover {
-		if err := t.SaveUn(shared.Nocover); err != nil {
+	if setup.Notest {
+		if err := t.SaveUn(shared.Notest); err != nil {
 			return errors.Wrapf(err, "SaveUn")
 		}
 	}
-	if setup.Nocoverdept {
-		if err := t.SaveUn(shared.Nocoverdept); err != nil {
-			return errors.Wrapf(err, "SaveUn")
-		}
-	}
-	if setup.Nocoverauto {
-		if err := t.SaveUn(shared.Nocoverauto); err != nil {
+	if setup.Notestdept {
+		if err := t.SaveUn(shared.Notestdept); err != nil {
 			return errors.Wrapf(err, "SaveUn")
 		}
 	}
@@ -283,14 +293,14 @@ type argsValue struct {
 var _ flag.Value = (*argsValue)(nil)
 
 func (v *argsValue) String() string {
-	// nocover
+	// notest
 	if v == nil {
 		return ""
 	}
 	return strings.Join(v.args, " ")
 }
 func (v *argsValue) Set(s string) error {
-	// nocover
+	// notest
 	v.args = append(v.args, s)
 	return nil
 }

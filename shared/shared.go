@@ -9,28 +9,26 @@ import (
 type ExcludeType byte
 
 const (
-	Nocoverall ExcludeType = iota
-	Nocover
-	Nocoverdept
-	Nocoverauto
+	Notestall ExcludeType = iota
+	Notest
+	Notestdept
 )
 
 // Setup holds globals, environment and command line flags for the courtney
 // command
 type Setup struct {
-	Env         vos.Env
-	Paths       *Cache
-	Enforce     bool
-	Verbose     bool
-	Short       bool
-	Nocoverauto bool
-	Nocover     bool
-	Nocoverdept bool
-	Timeout     string
-	Load        string
-	Output      string
-	TestArgs    []string
-	Packages    []PackageSpec
+	Env        vos.Env
+	Paths      *Cache
+	Enforce    bool
+	Verbose    bool
+	Short      bool
+	Notest     bool
+	Notestdept bool
+	Timeout    string
+	Load       string
+	Output     string
+	TestArgs   []string
+	Packages   []PackageSpec
 }
 
 // PackageSpec identifies a package by dir and path
