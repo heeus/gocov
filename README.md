@@ -27,7 +27,7 @@ The following lines are not tested:
 - Run tests and show uncovered lines:
   - Current package: `gocov .`
   - Current package + sub-packages: `gocov ./...`
-  - Default (if nothing specified): `.`
+  - Default (if nothing specified): `./...`
 - Verbose mode
   - Show output from the `go test -v`: `gocov -v`
 
