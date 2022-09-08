@@ -58,7 +58,6 @@ func TestRun(t *testing.T) {
 				t.Fatalf("Error creating builder in %s: %s", name, err)
 			}
 
-			//pdir = strings.ReplaceAll(pdir, "\\", `/`)
 			if err := env.Setwd(pdir); err != nil {
 				t.Fatalf("Error in Setwd in %s: %s", name, err)
 			}

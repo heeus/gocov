@@ -27,31 +27,45 @@ func main() {
 	// notest
 	env := vos.Os()
 
-	enforceFlag := flag.Bool("e", false, "Enforce 100% code coverage")
-	verboseFlag := flag.Bool("v", false, "Verbose output")
-	shortFlag := flag.Bool("short", false, "Pass the short flag to the go test command")
-	uncoverFlag := flag.Bool("uncover", false, "Shows uncoverage lines in console")
-	notestFlag := flag.Bool("notest", false, "Shows // notest lines in console")
-	timeoutFlag := flag.String("timeout", "", "Pass the timeout flag to the go test command")
-	outputFlag := flag.String("o", "", "Override coverage file location")
+	var enforceFlag bool
+	var verboseFlag bool
+	var shortFlag bool
+	var timeoutFlag string
+	var outputFlag string
+	var loadFlag string
+
 	argsFlag := new(argsValue)
 	flag.Var(argsFlag, "t", "Argument to pass to the 'go test' command. Can be used more than once.")
-	loadFlag := flag.String("l", "", "Load coverage file(s) instead of running 'go test'")
 
-	flag.Parse()
+	fs := flag.NewFlagSet("gocov", flag.ContinueOnError)
+	fs.BoolVar(&enforceFlag, "e", false, "Enforce 100% code coverage")
+	fs.BoolVar(&verboseFlag, "v", false, "Verbose output")
+	fs.BoolVar(&shortFlag, "short", false, "Pass the short flag to the go test command")
+	fs.StringVar(&timeoutFlag, "timeout", "", "Pass the timeout flag to the go test command")
+	fs.StringVar(&outputFlag, "o", "", "Override coverage file location")
+	fs.StringVar(&loadFlag, "l", "", "Load coverage file(s) instead of running 'go test'")
+	start := 1
+	notestParam := false
+	notestdeptParam := false
+	if len(os.Args) > 1 {
+		notestParam = os.Args[1] == "notest"
+		notestdeptParam = os.Args[1] == "notestdept"
+		start = 2
+	}
+	fs.Parse(os.Args[start:])
 
 	setup := &shared.Setup{
-		Env:      env,
-		Paths:    shared.NewCache(env),
-		Enforce:  *enforceFlag,
-		Verbose:  *verboseFlag,
-		Short:    *shortFlag,
-		Timeout:  *timeoutFlag,
-		Output:   *outputFlag,
-		Uncover:  *uncoverFlag,
-		Notest:   *notestFlag,
-		TestArgs: argsFlag.args,
-		Load:     *loadFlag,
+		Env:        env,
+		Paths:      shared.NewCache(env),
+		Enforce:    enforceFlag,
+		Verbose:    verboseFlag,
+		Short:      shortFlag,
+		Timeout:    timeoutFlag,
+		Output:     outputFlag,
+		Notest:     notestParam,
+		Notestdept: notestdeptParam,
+		TestArgs:   argsFlag.args,
+		Load:       loadFlag,
 	}
 
 	if err := Run(setup); err != nil {
@@ -60,18 +74,18 @@ func main() {
 	}
 
 	out := tester.CoverageFileName
-	exout := tester.UncoverageFileName
-	if setup.Uncover || setup.Notest {
-		printNotCoverLinks(setup, exout, false)
+	outun := tester.UncoverageFileName
+	if setup.Notest || setup.Notestdept {
+		printNotCoverLinks(outun, false)
 	} else {
-		printNotCoverLinks(setup, out, true)
+		printNotCoverLinks(out, true)
 	}
 	printTotalCoverage(setup, out)
 
 }
 
-func printNotCoverLinks(setup *shared.Setup, out string, covered bool) {
-	by, err := ioutil.ReadFile(out)
+func printNotCoverLinks(fn string, covered bool) {
+	by, err := ioutil.ReadFile(fn)
 	if err != nil {
 		return
 	}
@@ -105,16 +119,19 @@ func printNotCoverLinks(setup *shared.Setup, out string, covered bool) {
 	}
 	var s string
 	if covered {
-		s = "The following lines are not tested:"
+		s = "------------------------------------\t\n" +
+			"The following lines are not tested:\t\n" +
+			"------------------------------------"
 	} else {
-		s = "The following lines were excluded from coverage:"
+		s = "-------------------------------------------------\t\n" +
+			"The following lines were excluded from coverage:\t\n" +
+			"-------------------------------------------------"
 	}
 	if len(pritnstsr) > 0 {
 		fmt.Println(s)
 		for _, str := range pritnstsr {
 			fmt.Println(str)
 		}
-
 	}
 }
 
@@ -191,19 +208,19 @@ func substr(input string, start int, length int) string {
 	return string(asRunes[start : start+length])
 }
 
-func printTotalCoverage(setup *shared.Setup, out string) {
+func printTotalCoverage(setup *shared.Setup, fn string) {
 	currentDir, _ := setup.Env.Getwd()
 
 	stdout := bytes.NewBufferString("")
 	stderr := bytes.NewBufferString("")
-	exe := exec.Command("go", "tool", "cover", "-func", out)
+	exe := exec.Command("go", "tool", "cover", "-func", fn)
 	exe.Dir = currentDir
 	exe.Env = setup.Env.Environ()
 	exe.Stdout = stdout
 	exe.Stderr = stderr
 	err := exe.Run()
 	if err != nil {
-		fmt.Printf("%v not found.", out)
+		fmt.Printf("%v not found.", fn)
 		os.Exit(1)
 	}
 
@@ -251,9 +268,14 @@ func Run(setup *shared.Setup) error {
 		return errors.Wrapf(err, "Save")
 	}
 
-	if setup.Uncover || setup.Notest {
-		if err := t.ExSave(); err != nil {
-			return errors.Wrapf(err, "Save")
+	if setup.Notest {
+		if err := t.SaveUn(shared.Notest); err != nil {
+			return errors.Wrapf(err, "SaveUn")
+		}
+	}
+	if setup.Notestdept {
+		if err := t.SaveUn(shared.Notestdept); err != nil {
+			return errors.Wrapf(err, "SaveUn")
 		}
 	}
 

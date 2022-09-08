@@ -32,10 +32,11 @@ func New(setup *shared.Setup) *Tester {
 
 // Tester runs tests and merges coverage files
 type Tester struct {
-	setup     *shared.Setup
-	cover     string
-	Results   []*cover.Profile
-	ExResults []*cover.Profile
+	setup             *shared.Setup
+	cover             string
+	Results           []*cover.Profile
+	notestResults     []*cover.Profile
+	notestdeptResults []*cover.Profile
 }
 
 // Load loads pre-prepared coverage files instead of running 'go test'
@@ -70,13 +71,18 @@ func (t *Tester) Test() error {
 	return nil
 }
 
-func (t *Tester) doSave(covered bool, outf string) error {
+func (t *Tester) doSave(extype shared.ExcludeType, outf string) error {
 	var rs []*cover.Profile
-	if covered {
+
+	switch {
+	case extype == shared.Notest:
+		rs = t.notestResults
+	case extype == shared.Notestdept:
+		rs = t.notestdeptResults
+	default:
 		rs = t.Results
-	} else {
-		rs = t.ExResults
 	}
+
 	if len(rs) == 0 {
 		fmt.Fprintln(t.setup.Env.Stdout(), "No results")
 		return nil
@@ -100,12 +106,12 @@ func (t *Tester) doSave(covered bool, outf string) error {
 
 // Save saves the coverage file
 func (t *Tester) Save() error {
-	return t.doSave(true, CoverageFileName)
+	return t.doSave(shared.Notestall, CoverageFileName)
 }
 
-// Save saves the coverage file
-func (t *Tester) ExSave() error {
-	return t.doSave(false, UncoverageFileName)
+// SaveUn saves the uncoverage file
+func (t *Tester) SaveUn(extype shared.ExcludeType) error {
+	return t.doSave(extype, UncoverageFileName)
 }
 
 // Enforce returns an error if code is untested if the -e command line option
@@ -160,8 +166,9 @@ func (t *Tester) Enforce() error {
 
 // ProcessExcludes uses the output from the scanner package and removes blocks
 // from the merged coverage file.
-func (t *Tester) ProcessExcludes(excludes map[string]map[int]*shared.ExclType) error {
-	var exclud []*cover.Profile
+func (t *Tester) ProcessExcludes(excludes map[string]map[int]shared.ExcludeType) error {
+	var notestexclud []*cover.Profile
+	var notestdeptexclud []*cover.Profile
 	var processed []*cover.Profile
 
 	var p *cover.Profile
@@ -181,42 +188,56 @@ func (t *Tester) ProcessExcludes(excludes map[string]map[int]*shared.ExclType) e
 			continue
 		}
 		var blocks []cover.ProfileBlock
-		var exblocks []cover.ProfileBlock
+		var notestblocks []cover.ProfileBlock
+		var notestdeptblocks []cover.ProfileBlock
 		for _, b := range p.Blocks {
-			excluded := false
+			excluded := shared.Notestall
 			for line := b.StartLine; line <= b.EndLine; line++ {
 				if ex, ok := f[line]; ok {
-					if ex.Exist {
-						if (ex.Notest && t.setup.Notest) || !t.setup.Notest {
-							excluded = true
-							break
-						}
+					if ex == shared.Notest {
+						excluded = shared.Notest
+						break
+					} else if ex == shared.Notestdept {
+						excluded = shared.Notestdept
+						break
 					}
 				}
 			}
-			if !excluded || b.Count > 0 {
+			if excluded == shared.Notestall || b.Count > 0 {
 				// include blocks that are not excluded
 				// also include any blocks that have coverage
 				blocks = append(blocks, b)
 			} else {
-				exblocks = append(exblocks, b)
+				switch {
+				case excluded == shared.Notest:
+					notestblocks = append(notestblocks, b)
+				case excluded == shared.Notestdept:
+					notestdeptblocks = append(notestdeptblocks, b)
+				}
 			}
-		}
-		exprofile := &cover.Profile{
-			FileName: p.FileName,
-			Mode:     p.Mode,
-			Blocks:   exblocks,
 		}
 		profile := &cover.Profile{
 			FileName: p.FileName,
 			Mode:     p.Mode,
 			Blocks:   blocks,
 		}
+		notestprofile := &cover.Profile{
+			FileName: p.FileName,
+			Mode:     p.Mode,
+			Blocks:   notestblocks,
+		}
+		notestdeptprofile := &cover.Profile{
+			FileName: p.FileName,
+			Mode:     p.Mode,
+			Blocks:   notestdeptblocks,
+		}
 		processed = append(processed, profile)
-		exclud = append(exclud, exprofile)
+		notestexclud = append(notestexclud, notestprofile)
+		notestdeptexclud = append(notestdeptexclud, notestdeptprofile)
 	}
 	t.Results = processed
-	t.ExResults = exclud
+	t.notestResults = notestexclud
+	t.notestdeptResults = notestdeptexclud
 	return nil
 }
 
