@@ -30,7 +30,6 @@ func main() {
 	var enforceFlag bool
 	var verboseFlag bool
 	var shortFlag bool
-	var notestdeptFlag bool
 	var timeoutFlag string
 	var outputFlag string
 	var loadFlag string
@@ -42,7 +41,6 @@ func main() {
 	fs.BoolVar(&enforceFlag, "e", false, "Enforce 100% code coverage")
 	fs.BoolVar(&verboseFlag, "v", false, "Verbose output")
 	fs.BoolVar(&shortFlag, "short", false, "Pass the short flag to the go test command")
-	fs.BoolVar(&notestdeptFlag, "notestdept", false, "Shows //notestdept lines in console")
 	fs.StringVar(&timeoutFlag, "timeout", "", "Pass the timeout flag to the go test command")
 	fs.StringVar(&outputFlag, "o", "", "Override coverage file location")
 	fs.StringVar(&loadFlag, "l", "", "Load coverage file(s) instead of running 'go test'")
@@ -121,11 +119,13 @@ func printNotCoverLinks(fn string, covered bool) {
 	}
 	var s string
 	if covered {
-		s = "The following lines are not tested:" +
-			"___________________________________"
+		s = "------------------------------------\t\n" +
+			"The following lines are not tested:\t\n" +
+			"------------------------------------"
 	} else {
-		s = "The following lines were excluded from coverage:" +
-			"____________________________________________________"
+		s = "-------------------------------------------------\t\n" +
+			"The following lines were excluded from coverage:\t\n" +
+			"-------------------------------------------------"
 	}
 	if len(pritnstsr) > 0 {
 		fmt.Println(s)
