@@ -269,7 +269,6 @@ func (t *Tester) processDir(dir string) error {
 		t.setup.Env.Stdout(),
 		t.setup.Env.Stderr(),
 	)
-
 	var args []string
 	var pkgs []string
 	for _, s := range t.setup.Packages {

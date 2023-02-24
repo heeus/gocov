@@ -82,6 +82,9 @@ func main() {
 	}
 	printTotalCoverage(setup, out)
 
+	os.Remove(out)
+	os.Remove(outun)
+
 }
 
 func printNotCoverLinks(fn string, covered bool) {
@@ -251,6 +254,7 @@ func Run(setup *shared.Setup) error {
 	}
 
 	t := tester.New(setup)
+
 	if setup.Load == "" {
 		if err := t.Test(); err != nil {
 			return errors.Wrapf(err, "Test")
