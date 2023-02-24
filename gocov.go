@@ -68,7 +68,6 @@ func main() {
 		Load:       loadFlag,
 	}
 
-	setup.Notestdept = true
 	if err := Run(setup); err != nil {
 		fmt.Printf("%+v", err)
 		os.Exit(1)
