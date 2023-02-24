@@ -68,6 +68,7 @@ func main() {
 		Load:       loadFlag,
 	}
 
+	setup.Notestdept = true
 	if err := Run(setup); err != nil {
 		fmt.Printf("%+v", err)
 		os.Exit(1)
@@ -81,6 +82,9 @@ func main() {
 		printNotCoverLinks(out, true)
 	}
 	printTotalCoverage(setup, out)
+
+	os.Remove(out)
+	os.Remove(outun)
 
 }
 
@@ -251,13 +255,17 @@ func Run(setup *shared.Setup) error {
 	}
 
 	t := tester.New(setup)
-	if setup.Load == "" {
-		if err := t.Test(); err != nil {
-			return errors.Wrapf(err, "Test")
-		}
-	} else {
-		if err := t.Load(); err != nil {
-			return errors.Wrapf(err, "Load")
+
+	//	if !(setup.Notest || setup.Notestdept)
+	{
+		if setup.Load == "" {
+			if err := t.Test(); err != nil {
+				return errors.Wrapf(err, "Test")
+			}
+		} else {
+			if err := t.Load(); err != nil {
+				return errors.Wrapf(err, "Load")
+			}
 		}
 	}
 	if err := t.ProcessExcludes(s.Excludes); err != nil {
