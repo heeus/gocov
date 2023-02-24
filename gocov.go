@@ -255,16 +255,13 @@ func Run(setup *shared.Setup) error {
 
 	t := tester.New(setup)
 
-	//	if !(setup.Notest || setup.Notestdept)
-	{
-		if setup.Load == "" {
-			if err := t.Test(); err != nil {
-				return errors.Wrapf(err, "Test")
-			}
-		} else {
-			if err := t.Load(); err != nil {
-				return errors.Wrapf(err, "Load")
-			}
+	if setup.Load == "" {
+		if err := t.Test(); err != nil {
+			return errors.Wrapf(err, "Test")
+		}
+	} else {
+		if err := t.Load(); err != nil {
+			return errors.Wrapf(err, "Load")
 		}
 	}
 	if err := t.ProcessExcludes(s.Excludes); err != nil {
