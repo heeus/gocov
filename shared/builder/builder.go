@@ -29,7 +29,6 @@ func New(env vos.Env, namespace string, gomod bool) (*Builder, error) {
 // dir and the namespace dir. The gopath is appended to the beginning of the
 // existing gopath, so existing imports will still work.
 // Remember to defer the Cleanup() method to delete the temporary files.
-
 func NewGoRoot(env vos.Env, namespace string) (*Builder, error) {
 	gopath, err := ioutil.TempDir("", "go")
 	if err != nil {
@@ -82,7 +81,6 @@ func NewGoRoot(env vos.Env, namespace string) (*Builder, error) {
 // NewGoModule creates a new go module root in the system temporary location, creates the root dir
 // and the go.mod file. Remember to defer the Cleanup() method to delete the temporary files.
 func NewGoModule(env vos.Env, namespace string) (*Builder, error) {
-	// notestdept
 	root, err := ioutil.TempDir("", "go")
 	if err != nil {
 		return nil, errors.Wrap(err, "Error creating temporary gopath root dir")
