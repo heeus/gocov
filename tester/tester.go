@@ -172,21 +172,6 @@ func (t *Tester) ProcessExcludes(excludes map[string]map[int]shared.ExcludeType)
 	var processed []*cover.Profile
 
 	var p *cover.Profile
-	/*
-		if nil == t.Results {
-			// no excludes in this file - add the profile unchanged
-			var notestdeptblocks []cover.ProfileBlock
-			for fn, v := range excludes {
-				for line, excType := range excludes {
-					notestdeptblocks = append(notestdeptblocks, cover.ProfileBlock{})
-				}
-			}
-			notestdeptprofile := &cover.Profile{
-				FileName: fn,
-			}
-		return nil
-		}
-	*/
 	for _, p = range t.Results {
 
 		// Filenames in t.Results are in go package form. We need to convert to
