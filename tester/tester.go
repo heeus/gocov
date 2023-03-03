@@ -247,21 +247,7 @@ func (t *Tester) ProcessExcludes(excludes map[string]map[int]shared.ExcludeType)
 			Mode:     p.Mode,
 			Blocks:   blocks,
 		}
-		/*
-			notestprofile := &cover.Profile{
-				FileName: p.FileName,
-				Mode:     p.Mode,
-				Blocks:   notestblocks,
-			}
-			notestdeptprofile := &cover.Profile{
-				FileName: p.FileName,
-				Mode:     p.Mode,
-				Blocks:   notestdeptblocks,
-			}
-		*/
 		processed = append(processed, profile)
-		//		notestexclud = append(notestexclud, notestprofile)
-		//		notestdeptexclud = append(notestdeptexclud, notestdeptprofile)
 	}
 
 	t.Results = processed
