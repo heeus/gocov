@@ -11,12 +11,12 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"golang.org/x/mod/modfile"
 
 	"github.com/heeus/gocov/scanner"
 	"github.com/heeus/gocov/shared"
 	"github.com/heeus/gocov/shared/vos"
 	"github.com/heeus/gocov/tester"
-	"golang.org/x/mod/modfile"
 )
 
 const (
@@ -76,18 +76,16 @@ func main() {
 	out := tester.CoverageFileName
 	outun := tester.UncoverageFileName
 	if setup.Notest || setup.Notestdept {
-		printNotCoverLinks(outun, false)
+		printNotCoverLinks(setup, outun, false)
 	} else {
-		printNotCoverLinks(out, true)
+		printNotCoverLinks(setup, out, true)
+		printTotalCoverage(setup, out)
 	}
-	printTotalCoverage(setup, out)
-
 	os.Remove(out)
 	os.Remove(outun)
-
 }
 
-func printNotCoverLinks(fn string, covered bool) {
+func printNotCoverLinks(setup *shared.Setup, fn string, covered bool) {
 	by, err := ioutil.ReadFile(fn)
 	if err != nil {
 		return
@@ -109,7 +107,11 @@ func printNotCoverLinks(fn string, covered bool) {
 						if len(poslinefrom) == 2 {
 							posfrom = poslinefrom[1]
 							fullfilename := poslinefrom[0]
-							filename = getFuleNameFromFullName(fullfilename)
+							if setup.Notest || setup.Notestdept {
+								filename = getFullNameFromPath(fullfilename)
+							} else {
+								filename = getFullNameFromCover(fullfilename)
+							}
 						}
 						if len(posfrom) > 0 && len(filename) > 0 {
 							posfrom = strings.ReplaceAll(posfrom, ".", ":")
@@ -126,8 +128,15 @@ func printNotCoverLinks(fn string, covered bool) {
 			"The following lines are not tested:\t\n" +
 			"------------------------------------"
 	} else {
+		flag := ""
+		if setup.Notest {
+			flag = "'notest'"
+		} else {
+			flag = "'notestdept'"
+
+		}
 		s = "-------------------------------------------------\t\n" +
-			"The following lines were excluded from coverage:\t\n" +
+			"The following lines have instruction " + flag + ":\t\n" +
 			"-------------------------------------------------"
 	}
 	if len(pritnstsr) > 0 {
@@ -148,7 +157,13 @@ func badStatus(statusline string) bool {
 	}
 	return strs[2] == "0"
 }
-func getFuleNameFromFullName(fullfilename string) string {
+func getFullNameFromPath(fullfilename string) string {
+	mydir, _ := os.Getwd()
+	start := len(mydir) + 1
+	return "./" + substr(fullfilename, start, len(fullfilename)-start)
+}
+
+func getFullNameFromCover(fullfilename string) string {
 
 	// Search first go.mod in current and parent folders
 	goModfile, path := findGoMod()
@@ -167,6 +182,7 @@ func getFuleNameFromFullName(fullfilename string) string {
 	}
 	cutpath := f.Module.Mod.Path + strings.ReplaceAll(path, "\\", "/")
 	return "./" + substr(fullfilename, len(cutpath)+1, len(fullfilename))
+
 }
 
 func findGoMod() (goModPath string, addPath string) {
@@ -255,21 +271,25 @@ func Run(setup *shared.Setup) error {
 
 	t := tester.New(setup)
 
-	if setup.Load == "" {
-		if err := t.Test(); err != nil {
-			return errors.Wrapf(err, "Test")
-		}
-	} else {
-		if err := t.Load(); err != nil {
-			return errors.Wrapf(err, "Load")
+	if !(setup.Notest || setup.Notestdept) {
+		if setup.Load == "" {
+			if err := t.Test(); err != nil {
+				return errors.Wrapf(err, "Test")
+			}
+		} else {
+			if err := t.Load(); err != nil {
+				return errors.Wrapf(err, "Load")
+			}
 		}
 	}
 	if err := t.ProcessExcludes(s.Excludes); err != nil {
 		return errors.Wrapf(err, "ProcessExcludes")
 	}
 
-	if err := t.Save(); err != nil {
-		return errors.Wrapf(err, "Save")
+	if !(setup.Notest || setup.Notestdept) {
+		if err := t.Save(); err != nil {
+			return errors.Wrapf(err, "Save")
+		}
 	}
 
 	if setup.Notest {

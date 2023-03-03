@@ -171,6 +171,32 @@ func (t *Tester) ProcessExcludes(excludes map[string]map[int]shared.ExcludeType)
 	var notestdeptexclud []*cover.Profile
 	var processed []*cover.Profile
 
+	for f, mp := range excludes {
+		var notestblocks []cover.ProfileBlock
+		var notestdeptblocks []cover.ProfileBlock
+		for line, tp := range mp {
+			var b cover.ProfileBlock = cover.ProfileBlock{StartLine: line, EndLine: line, StartCol: 1, EndCol: 10, Count: 0}
+			if tp == shared.Notest {
+				notestblocks = append(notestblocks, b)
+			} else if tp == shared.Notestdept {
+				notestdeptblocks = append(notestdeptblocks, b)
+			}
+		}
+		mode := "set"
+		notestprofile := &cover.Profile{
+			FileName: f,
+			Mode:     mode,
+			Blocks:   notestblocks,
+		}
+		notestdeptprofile := &cover.Profile{
+			FileName: f,
+			Mode:     mode,
+			Blocks:   notestdeptblocks,
+		}
+		notestexclud = append(notestexclud, notestprofile)
+		notestdeptexclud = append(notestdeptexclud, notestdeptprofile)
+	}
+
 	var p *cover.Profile
 	for _, p = range t.Results {
 
@@ -221,20 +247,23 @@ func (t *Tester) ProcessExcludes(excludes map[string]map[int]shared.ExcludeType)
 			Mode:     p.Mode,
 			Blocks:   blocks,
 		}
-		notestprofile := &cover.Profile{
-			FileName: p.FileName,
-			Mode:     p.Mode,
-			Blocks:   notestblocks,
-		}
-		notestdeptprofile := &cover.Profile{
-			FileName: p.FileName,
-			Mode:     p.Mode,
-			Blocks:   notestdeptblocks,
-		}
+		/*
+			notestprofile := &cover.Profile{
+				FileName: p.FileName,
+				Mode:     p.Mode,
+				Blocks:   notestblocks,
+			}
+			notestdeptprofile := &cover.Profile{
+				FileName: p.FileName,
+				Mode:     p.Mode,
+				Blocks:   notestdeptblocks,
+			}
+		*/
 		processed = append(processed, profile)
-		notestexclud = append(notestexclud, notestprofile)
-		notestdeptexclud = append(notestdeptexclud, notestdeptprofile)
+		//		notestexclud = append(notestexclud, notestprofile)
+		//		notestdeptexclud = append(notestdeptexclud, notestdeptprofile)
 	}
+
 	t.Results = processed
 	t.notestResults = notestexclud
 	t.notestdeptResults = notestdeptexclud
