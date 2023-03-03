@@ -81,6 +81,7 @@ func main() {
 		printNotCoverLinks(setup, out, true)
 		printTotalCoverage(setup, out)
 	}
+
 	os.Remove(out)
 	os.Remove(outun)
 }
