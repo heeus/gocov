@@ -126,6 +126,7 @@ func (p *PackageMap) ScanPackage() error {
 func (f *FileMap) FindExcludes() error {
 	var err error
 
+	// notestdept
 	ast.Inspect(f.file, func(node ast.Node) bool {
 		if err != nil {
 			// notest
@@ -203,6 +204,9 @@ func (f *FileMap) inspectComment(cg *ast.CommentGroup) {
 						f.addExclude(start.Filename, line, shared.Notest)
 					} else {
 						f.addExclude(start.Filename, line, shared.Notestdept)
+					}
+					if f.setup.Notest || f.setup.Notestdept {
+						break
 					}
 				}
 			}
