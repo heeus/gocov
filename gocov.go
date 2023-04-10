@@ -230,7 +230,9 @@ func substr(input string, start int, length int) string {
 
 func printTotalCoverage(setup *shared.Setup, fn string) {
 	currentDir, _ := setup.Env.Getwd()
-
+	if _, err := os.Stat(fn); os.IsNotExist(err) {
+		return // File coverage.out does not exist
+	}
 	stdout := bytes.NewBufferString("")
 	stderr := bytes.NewBufferString("")
 	exe := exec.Command("go", "tool", "cover", "-func", fn)
