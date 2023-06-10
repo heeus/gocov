@@ -115,7 +115,10 @@ func printNotCoverLinks(setup *shared.Setup, fn string, covered bool) {
 							}
 						}
 						if len(posfrom) > 0 && len(filename) > 0 {
-							posfrom = strings.ReplaceAll(posfrom, ".", ":")
+							linstrs := strings.Split(posfrom, ".")
+							if len(linstrs) > 0 {
+								posfrom = linstrs[0]
+							}
 							pritnstsr = append(pritnstsr, filename+":"+posfrom)
 						}
 					}
@@ -161,6 +164,7 @@ func badStatus(statusline string) bool {
 func getFullNameFromPath(fullfilename string) string {
 	mydir, _ := os.Getwd()
 	start := len(mydir) + 1
+
 	return "./" + substr(fullfilename, start, len(fullfilename)-start)
 }
 
@@ -182,8 +186,10 @@ func getFullNameFromCover(fullfilename string) string {
 		return ""
 	}
 	cutpath := f.Module.Mod.Path + strings.ReplaceAll(path, "\\", "/")
+	root, _ := os.Getwd()
+	fileName := filepath.Base(root)
+	cutpath = cutpath + "/" + fileName
 	return "./" + substr(fullfilename, len(cutpath)+1, len(fullfilename))
-
 }
 
 func findGoMod() (goModPath string, addPath string) {
