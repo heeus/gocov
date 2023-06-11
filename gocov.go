@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -44,16 +43,35 @@ func main() {
 	fs.StringVar(&timeoutFlag, "timeout", "", "Pass the timeout flag to the go test command")
 	fs.StringVar(&outputFlag, "o", "", "Override coverage file location")
 	fs.StringVar(&loadFlag, "l", "", "Load coverage file(s) instead of running 'go test'")
+	fs.BoolVar(&verboseFlag, "notest", false, "notest")
+	fs.BoolVar(&verboseFlag, "notestdept", false, "notest")
+
 	start := 1
+
 	notestParam := false
 	notestdeptParam := false
 	if len(os.Args) > 1 {
 		notestParam = os.Args[1] == "notest"
 		notestdeptParam = os.Args[1] == "notestdept"
-		start = 2
+		if notestParam || notestdeptParam {
+			start = 2
+		}
 	}
-	fs.Parse(os.Args[start:])
 
+	if start == 2 {
+		err := flag.CommandLine.Parse(os.Args[start:])
+		if err != nil {
+			fmt.Println(err.Error())
+			os.Exit(1)
+		}
+	} else {
+		flag.Parse()
+	}
+	err := fs.Parse(os.Args[start:])
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
 	setup := &shared.Setup{
 		Env:        env,
 		Paths:      shared.NewCache(env),
@@ -69,12 +87,13 @@ func main() {
 	}
 
 	if err := Run(setup); err != nil {
-		fmt.Printf("%+v", err)
+		fmt.Println(err.Error())
 		os.Exit(1)
 	}
 
 	out := tester.CoverageFileName
 	outun := tester.UncoverageFileName
+
 	if setup.Notest || setup.Notestdept {
 		printNotCoverLinks(setup, outun, false)
 	} else {
@@ -87,7 +106,7 @@ func main() {
 }
 
 func printNotCoverLinks(setup *shared.Setup, fn string, covered bool) {
-	by, err := ioutil.ReadFile(fn)
+	by, err := os.ReadFile(fn)
 	if err != nil {
 		return
 	}
@@ -172,7 +191,7 @@ func getFullNameFromCover(fullfilename string) string {
 
 	// Search first go.mod in current and parent folders
 	goModfile, path := findGoMod()
-	fb, err := ioutil.ReadFile(goModfile)
+	fb, err := os.ReadFile(goModfile)
 	if err != nil {
 		return ""
 	}
@@ -185,11 +204,31 @@ func getFullNameFromCover(fullfilename string) string {
 	if pos < 0 {
 		return ""
 	}
+
 	cutpath := f.Module.Mod.Path + strings.ReplaceAll(path, "\\", "/")
-	root, _ := os.Getwd()
-	fileName := filepath.Base(root)
-	cutpath = cutpath + "/" + fileName
-	return "./" + substr(fullfilename, len(cutpath)+1, len(fullfilename))
+	testPath := fullfilename
+	curdir, _ := os.Getwd()
+	curdir = filepath.Base(curdir)
+
+	addPath := ""
+	for cutpath != testPath {
+		partpath := filepath.Base(testPath)
+		needbreak := false
+		if partpath != curdir {
+			if addPath == "" {
+				addPath = partpath
+			} else {
+				addPath = partpath + "/" + addPath
+			}
+		} else {
+			needbreak = true
+		}
+		testPath = substr(testPath, 0, len(testPath)-len(partpath)-1)
+		if needbreak {
+			break
+		}
+	}
+	return "./" + addPath
 }
 
 func findGoMod() (goModPath string, addPath string) {
@@ -291,6 +330,7 @@ func Run(setup *shared.Setup) error {
 			}
 		}
 	}
+
 	if err := t.ProcessExcludes(s.Excludes); err != nil {
 		return errors.Wrapf(err, "ProcessExcludes")
 	}

@@ -3,7 +3,7 @@ package tester_test
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -140,10 +140,7 @@ func TestTester_Enforce(t *testing.T) {
 
 func TestTester_Save_output(t *testing.T) {
 	env := vos.Mock()
-	dir, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatalf("Error creating temp dir: %s", err)
-	}
+	dir := os.TempDir()
 	out := filepath.Join(dir, "foo.bar")
 	setup := &shared.Setup{
 		Env:    env,
@@ -161,7 +158,7 @@ func TestTester_Save_output(t *testing.T) {
 	if err := ts.Save(); err != nil {
 		t.Fatalf("Error saving: %s", err)
 	}
-	if _, err := ioutil.ReadFile(out); err != nil {
+	if _, err := os.ReadFile(out); err != nil {
 		t.Fatalf("Error loading coverage: %s", err)
 	}
 }
@@ -334,7 +331,7 @@ func TestTester_Test(t *testing.T) {
 					if err != nil {
 						t.Fatalf("Error in '%s' while getting dir from package: %+v", name, err)
 					}
-					src, err := ioutil.ReadFile(filepath.Join(dir, fname))
+					src, err := os.ReadFile(filepath.Join(dir, fname))
 					if err != nil {
 						t.Fatalf("Error in '%s' while opening coverage: %+v", name, err)
 					}

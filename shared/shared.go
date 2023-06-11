@@ -1,6 +1,7 @@
 package shared
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/heeus/gocov/shared/vos"
@@ -39,24 +40,27 @@ type PackageSpec struct {
 
 // Parse parses a slice of strings into the Packages slice
 func (s *Setup) Parse(args []string) error {
+
 	if len(args) == 0 {
 		args = []string{"./..."}
 	}
+
 	packages := map[string]string{}
 	for _, ppath := range args {
 		ppath = strings.TrimSuffix(ppath, "/")
-
 		paths, err := s.Paths.Dirs(ppath)
 		if err != nil {
-			return err
+			return errors.New("Package to test not found")
 		}
 
 		for importPath, dir := range paths {
 			packages[importPath] = dir
 		}
 	}
+
 	for ppath, dir := range packages {
 		s.Packages = append(s.Packages, PackageSpec{Path: ppath, Dir: dir})
 	}
+
 	return nil
 }

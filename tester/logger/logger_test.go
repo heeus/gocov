@@ -35,8 +35,14 @@ func TestMultiWriter(t *testing.T) {
 	w1b := bytes.NewBuffer(w1)
 	w2b := bytes.NewBuffer(w2)
 	mw := MultiWriter(pb, w1b, w2b)
-	mw.Write([]byte("a"))
-	mw.Write([]byte("b"))
+	_, err := mw.Write([]byte("a"))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	_, err = mw.Write([]byte("b"))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	if pb.String() != "ab" {
 		t.Fatalf("pb expected 'ab', got '%s'", pb.String())
 	}

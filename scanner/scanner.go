@@ -36,11 +36,6 @@ type FileMap struct {
 	matcher *astrid.Matcher
 }
 
-type packageId struct {
-	path string
-	name string
-}
-
 // New returns a CoseMap with the provided setup
 func New(setup *shared.Setup) *CodeMap {
 	return &CodeMap{

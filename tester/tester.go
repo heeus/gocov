@@ -61,13 +61,11 @@ func (t *Tester) Test() error {
 		return errors.Wrap(err, "Error creating temporary coverage dir")
 	}
 	defer os.RemoveAll(t.cover)
-
 	for _, spec := range t.setup.Packages {
 		if err := t.processDir(spec.Dir); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -149,7 +147,7 @@ func (t *Tester) Enforce() error {
 		if err != nil {
 			return err
 		}
-		by, err := ioutil.ReadFile(fpath)
+		by, err := os.ReadFile(fpath)
 		if err != nil {
 			return errors.Wrapf(err, "Error reading source file %s", fpath)
 		}
@@ -263,7 +261,7 @@ func (t *Tester) processDir(dir string) error {
 		fmt.Sprintf("%x", md5.Sum([]byte(dir)))+".out",
 	)
 
-	files, err := ioutil.ReadDir(dir)
+	files, err := os.ReadDir(dir)
 	if err != nil {
 		return errors.Wrapf(err, "Error reading files from %s", dir)
 	}
@@ -278,7 +276,6 @@ func (t *Tester) processDir(dir string) error {
 		// notest
 		return nil
 	}
-
 	combined, _, stderr := logger.Log(
 		t.setup.Verbose,
 		t.setup.Env.Stdout(),
@@ -327,6 +324,7 @@ func (t *Tester) processDir(dir string) error {
 		// notest
 		return nil
 	}
+
 	if err != nil {
 		// TODO: Remove when https://github.com/dave/courtney/issues/4 is fixed
 		// notest

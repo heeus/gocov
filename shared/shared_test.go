@@ -31,7 +31,6 @@ func TestParseArgs(t *testing.T) {
 			if err != nil {
 				t.Fatal(fmt.Sprintf("%+v", err))
 			}
-
 			paths := shared.NewCache(env)
 
 			if err := env.Setwd(adir); err != nil {

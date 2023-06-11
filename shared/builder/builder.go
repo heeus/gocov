@@ -155,11 +155,9 @@ func (b *Builder) Package(packageName string, files map[string]string) (packageP
 		return "", "", errors.Wrap(err, "Error creating temporary package dir")
 	}
 
-	if files != nil {
-		for filename, contents := range files {
-			if err := b.File(packageName, filename, contents); err != nil {
-				return "", "", err
-			}
+	for filename, contents := range files {
+		if err := b.File(packageName, filename, contents); err != nil {
+			return "", "", err
 		}
 	}
 

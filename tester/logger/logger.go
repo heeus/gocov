@@ -36,7 +36,10 @@ type multiWriter struct {
 // Write writes to the writers.
 func (t *multiWriter) Write(p []byte) (n int, err error) {
 	for _, w := range t.writers {
-		w.Write(p)
+		_, err := w.Write(p)
+		if err != nil {
+			return 0, err
+		}
 	}
 	return t.primary.Write(p)
 }

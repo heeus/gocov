@@ -175,6 +175,7 @@ func test(t *testing.T, tests map[string]string) {
 		//   - // notest // because this is glue code$
 		notest := regexp.MustCompile("//\\s?notest(\\s//\\s?.*)?$")
 		notestdept := regexp.MustCompile("//\\s?notestdept(\\s//\\s?.*)?$")
+		
 
 		for i, line := range strings.Split(source, "\n") {
 			var expected shared.ExcludeType
