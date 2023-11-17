@@ -1,6 +1,6 @@
 module github.com/heeus/gocov
 
-go 1.20
+go 1.21.4
 
 require (
 	github.com/dave/astrid v0.0.0-20170323122508-8c2895878b14

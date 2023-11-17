@@ -106,6 +106,7 @@ func main() {
 }
 
 func printNotCoverLinks(setup *shared.Setup, fn string, covered bool) {
+
 	by, err := os.ReadFile(fn)
 	if err != nil {
 		return
@@ -113,9 +114,9 @@ func printNotCoverLinks(setup *shared.Setup, fn string, covered bool) {
 	lines := strings.Split(string(by), "\n")
 	var posfrom string
 	var filename string
-
 	var pritnstsr []string
 	for i, str := range lines {
+
 		if i > 0 {
 			strline := strings.Split(str, " ")
 			if len(strline) == 3 {
@@ -133,6 +134,7 @@ func printNotCoverLinks(setup *shared.Setup, fn string, covered bool) {
 								filename = getFullNameFromCover(fullfilename)
 							}
 						}
+
 						if len(posfrom) > 0 && len(filename) > 0 {
 							linstrs := strings.Split(posfrom, ".")
 							if len(linstrs) > 0 {
@@ -180,6 +182,7 @@ func badStatus(statusline string) bool {
 	}
 	return strs[2] == "0"
 }
+
 func getFullNameFromPath(fullfilename string) string {
 	mydir, _ := os.Getwd()
 	start := len(mydir) + 1
@@ -187,6 +190,17 @@ func getFullNameFromPath(fullfilename string) string {
 	return "./" + substr(fullfilename, start, len(fullfilename)-start)
 }
 
+func customVersionFixer(modPath, version string) (string, error) {
+
+	fmt.Println(version)
+	// If the version string matches the pattern, extract and return the major and minor parts
+	if version == "1.21.4" {
+		return "1.21", nil
+	}
+	// Return the original version if no change is needed
+	return version, nil
+
+}
 func getFullNameFromCover(fullfilename string) string {
 
 	// Search first go.mod in current and parent folders
@@ -195,8 +209,11 @@ func getFullNameFromCover(fullfilename string) string {
 	if err != nil {
 		return ""
 	}
-	f, err := modfile.Parse(goModfile, fb, nil)
+
+	//	fmt.Println("goModfile", goModfile)
+	f, err := modfile.Parse(goModfile, fb, customVersionFixer)
 	if err != nil {
+		fmt.Println(err.Error())
 		return ""
 	}
 
